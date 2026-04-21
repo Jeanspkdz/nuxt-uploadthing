@@ -1,8 +1,24 @@
-import { defineNuxtModule, addServerHandler, createResolver, addComponent, addComponentsDir, addImports } from '@nuxt/kit'
+import { addComponentsDir, addImports, addServerHandler, addTypeTemplate, createResolver, defineNuxtModule, useLogger } from '@nuxt/kit'
+import { existsSync } from 'node:fs'
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
 
+  /**
+   * Path to the file where your file router is defined.
+   * Supports Nuxt aliases like `~` and `@`.
+   * @default '~/server/uploadthing'
+   */
+  fileRouterPath: string
+
+  /**
+   * Name of the exported file router from `fileRouterPath`.
+   * @default 'fileRouter'
+   * @example
+   * // server/uploadthing.ts
+   * export const fileRouter = createUploadthing()({ ... })
+   */
+  fileRouterExport: string
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -10,21 +26,39 @@ export default defineNuxtModule<ModuleOptions>({
     name: 'nuxt-uploadthing',
     configKey: 'uploadthing',
   },
-  // Default configuration options of the Nuxt module
-  defaults: {},
-  setup(_options, _nuxt) {
+  defaults: {
+    fileRouterPath: '~/server/uploadthing',
+    fileRouterExport: 'fileRouter',
+  },
+  async setup(options, _nuxt) {
+    const MODULE_NAME = 'nuxt-upt'
     const resolver = createResolver(import.meta.url)
+    const logger = useLogger('JEANSPKDZ')
 
-    addServerHandler({
-      route: '/test',
-      method: 'get',
-      handler: resolver.resolve('./runtime/server/api/test.get'),
-    })
+    const fileRouterPathResolved = await resolver.resolvePath(options.fileRouterPath)
 
-    addComponent({
-      name: 'UploadButtonTest',
-      filePath: resolver.resolve('./runtime/upload-button.vue'),
-      priority: 1,
+    logger.warn(`Exits? ${existsSync(fileRouterPathResolved)}`)
+
+    if (!options.fileRouterPath || !existsSync(fileRouterPathResolved)) {
+      logger.warn(
+        `[my-module] Could not find fileRouterPath: ${
+          options.fileRouterPath || '(empty path)'
+        }`,
+      )
+
+      return
+    }
+
+    addTypeTemplate({
+      filename: `types/${MODULE_NAME}.d.ts`,
+      getContents: () => `
+declare module '${MODULE_NAME}' {
+  type UploadthingUserModule = typeof import(${JSON.stringify(fileRouterPathResolved)})
+  export type UserFileRouter = UploadthingUserModule[${JSON.stringify(options.fileRouterExport)}]
+  export declare const ${options.fileRouterExport}: UploadthingUserModule[${JSON.stringify(options.fileRouterExport)}]
+}
+`,
+      dst: resolver.resolve(`./runtime/generated/${MODULE_NAME}.d.ts`),
     })
 
     addServerHandler({
@@ -53,8 +87,5 @@ export default defineNuxtModule<ModuleOptions>({
         from: resolver.resolve('./runtime/utils/upload-helpers'),
       })),
     )
-
-    // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
-    // addPlugin(resolver.resolve('./runtime/plugin'))
   },
 })

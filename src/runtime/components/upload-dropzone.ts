@@ -1,7 +1,7 @@
 import { generateUploadDropzone } from '@uploadthing/vue'
-import type { MyFileRouter } from '../utils/uploadthing'
+import type { UserFileRouter } from 'nuxt-upt'
 
-const UploadDropzonenGenerated = generateUploadDropzone<MyFileRouter>()
+const UploadDropzonenGenerated = generateUploadDropzone<UserFileRouter>()
 
 export {
   UploadDropzonenGenerated as default,

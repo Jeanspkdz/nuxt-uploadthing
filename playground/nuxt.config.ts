@@ -1,8 +1,9 @@
 export default defineNuxtConfig({
-  modules: ['nuxt-uploadthing'],
+  modules: ['../src/module'],
   devtools: { enabled: true },
   compatibilityDate: 'latest',
   uploadthing: {
-
-  }
+    fileRouterPath: '~/server/uploadthing',
+    fileRouterExport: 'adminFileRouter',
+  },
 })

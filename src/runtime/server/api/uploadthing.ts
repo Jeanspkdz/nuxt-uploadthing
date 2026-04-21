@@ -1,9 +1,10 @@
 import { createRouteHandler } from 'uploadthing/h3'
-import { ourFileRouter } from '../../utils/uploadthing'
+import { ourFileRouter } from 'nuxt-upt'
 
 export default createRouteHandler({
   router: ourFileRouter,
   config: {
-    token: '<UPLOAD_KEY>',
+    // token: process.env.UPLOADTHING_TOKEN ?? runtimeConfig.uploadthing.token,
+    token: process.env.UPLOADTHING_TOKEN ?? '',
   },
 })

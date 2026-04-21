@@ -1,7 +1,7 @@
 import { generateUploadButton } from '@uploadthing/vue'
-import type { MyFileRouter } from '../utils/uploadthing'
+import type { UserFileRouter } from 'nuxt-upt'
 
-const UploadButtonGenerated = generateUploadButton<MyFileRouter>()
+const UploadButtonGenerated = generateUploadButton<UserFileRouter>()
 
 export {
   UploadButtonGenerated as default,
