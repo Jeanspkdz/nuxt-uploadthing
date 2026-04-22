@@ -31,6 +31,7 @@ export default defineNuxtModule<ModuleOptions>().with({
   defaults: {
     fileRouterPath: '@@/server/uploadthing',
     fileRouterExport: 'fileRouter',
+    useTailwindStyles: false,
   },
   async setup(options, _nuxt) {
     const MODULE_NAME = 'nuxt-upt'
@@ -58,13 +59,10 @@ export default defineNuxtModule<ModuleOptions>().with({
       _nuxt.options.alias['#jeans'] = fileRouterPathResolved
     }
 
-    logger.warn(
-      `Adding component RuntimeUploadButton`,
-    )
-
     const runtimeUploadButtonTemplate = addTemplate({
       write: true,
       filename: 'runtime-upload-button.ts',
+      dst: resolver.resolve('./runtime/components/runtime-upload-button.ts'),
       getContents: () => `
 import { generateUploadButton } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -90,6 +88,7 @@ export default RuntimeUploadButton
     const runtimeUploadDropzoneTemplate = addTemplate({
       write: true,
       filename: 'runtime-upload-dropzone.ts',
+      dst: resolver.resolve('./runtime/components/runtime-upload-dropzone.ts'),
       getContents: () => `
 import { generateUploadDropzone } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -115,6 +114,7 @@ export default RuntimeUploadDropzone
     const uploadHelpersTemplate = addTemplate({
       write: true,
       filename: 'upload-helpers.ts',
+      dst: resolver.resolve('./runtime/utils/upload-helpers.ts'),
       getContents: () => `
 import { generateVueHelpers } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -139,29 +139,27 @@ export const uploadFiles = helpers.uploadFiles
     addImports([
       {
         name: 'useUploadThing',
-        as: 'jp_useUploadThing',
         from: uploadHelpersTemplate.dst,
       },
       {
         name: 'createUpload',
-        as: 'jp_createUpload',
         from: uploadHelpersTemplate.dst,
       },
       {
         name: 'routeRegistry',
-        as: 'jp_routeRegistry',
         from: uploadHelpersTemplate.dst,
       },
       {
         name: 'uploadFiles',
-        as: 'jp_uploadFiles',
         from: uploadHelpersTemplate.dst,
       },
     ])
 
-    const uploadthingHandlerTemplate = addTemplate({
+    const uploadthingHandlerTemplate = await addTemplate({
       write: true,
-      filename: 'nuxt-uploadthing/runtime/server/api/uploadthing.mjs',
+      dst: resolver.resolve('./runtime/server/api/uploadthing.ts'),
+      // filename: 'nuxt-uploadthing/runtime/server/api/uploadthing.mjsts',
+      filename: 'uploadthing.ts',
       getContents: () => `
 import { useRuntimeConfig } from '#imports'
 import { defineEventHandler } from 'h3'
@@ -195,11 +193,11 @@ export default defineEventHandler((event) => {
 `,
     })
 
-    // addComponent({
-    //   name: 'RuntimeUploadButton',
-    //   filePath: resolver.resolve('./runtime/runtime-upload-button.ts'),
-    //   export: 'default',
-    // })
+    // Register generated server handler
+    addServerHandler({
+      route: '/api/uploadthing',
+      handler: uploadthingHandlerTemplate.dst,
+    })
 
     _nuxt.hook('builder:watch', (event, path) => {
       if (event !== 'add' && event !== 'unlink') {
@@ -209,12 +207,6 @@ export default defineEventHandler((event) => {
       if (path === fileRouterPathResolved || path.startsWith(fileRouterPathResolved)) {
         void _nuxt.hooks.callHook('restart', { hard: true })
       }
-    })
-
-    // 5. Register generated server handler
-    addServerHandler({
-      route: '/api/uploadthing',
-      handler: uploadthingHandlerTemplate.dst,
     })
   },
 })
