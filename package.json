@@ -1,8 +1,10 @@
 {
   "name": "nuxt-uploadthing",
   "version": "1.0.0",
-  "description": "My new Nuxt module",
-  "repository": "your-org/my-module",
+  "description": "Nuxt module for seamless UploadThing integration with type-safe file routers and auto-generated components.",
+  "repository": {
+    "type": "git"
+  },
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -30,6 +32,7 @@
     "dev": "npm run dev:prepare && nuxt dev playground",
     "dev:build": "nuxt build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
+    "dev:mod:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare",
     "release": "npm run lint && npm run test && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
     "lint": "eslint .",
     "test": "vitest run",
@@ -38,7 +41,8 @@
   },
   "dependencies": {
     "@nuxt/kit": "^4.4.2",
-    "@uploadthing/vue": "^7.3.3"
+    "@uploadthing/vue": "^7.3.3",
+    "defu": "^6.1.7"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.2.4",
