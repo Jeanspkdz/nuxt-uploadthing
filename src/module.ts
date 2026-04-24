@@ -1,4 +1,3 @@
-import type { Resolver } from '@nuxt/kit'
 import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule, useLogger, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { existsSync } from 'node:fs'
@@ -7,6 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 
 const MODULE_NAME = 'nuxt-uploadthing'
 const logger = useLogger(MODULE_NAME)
+const resolver = createResolver(import.meta.url)
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
@@ -27,6 +27,7 @@ export interface ModuleOptions {
    */
   fileRouterExport: string
   useTailwindStyles: boolean
+  componentPrefix: string
 }
 
 export default defineNuxtModule<ModuleOptions>().with({
@@ -38,9 +39,9 @@ export default defineNuxtModule<ModuleOptions>().with({
     fileRouterPath: '@@/server/uploadthing',
     fileRouterExport: 'fileRouter',
     useTailwindStyles: false,
+    componentPrefix: 'Uploadthing',
   },
   async setup(options, _nuxt) {
-    const resolver = createResolver(import.meta.url)
     const fileRouterPathResolved = await resolver.resolvePath(options.fileRouterPath)
 
     const currentConfig = (_nuxt.options.runtimeConfig.uploadthing ?? {}) as Partial<ModuleOptions>
@@ -64,10 +65,7 @@ export default defineNuxtModule<ModuleOptions>().with({
 
     applyUploadthingStyles()
 
-    generateUploadthingArtifacts({
-      resolver,
-      fileRouterExport: options.fileRouterExport,
-    })
+    generateUploadthingArtifacts()
 
     _nuxt.hook('builder:watch', (event, path) => {
       if (event !== 'add' && event !== 'unlink') {
@@ -83,10 +81,7 @@ export default defineNuxtModule<ModuleOptions>().with({
 
 function applyUploadthingStyles() {
   const nuxt = useNuxt()
-  const uploadthingOptions = nuxt.options.uploadthing
-  if (!uploadthingOptions) {
-    return
-  }
+  const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
   const useTailwindStyles = uploadthingOptions.useTailwindStyles
   const rootDir = nuxt.options.rootDir
   const resolveTwPath = join(rootDir, 'node_modules/tailwindcss')
@@ -103,7 +98,6 @@ function applyUploadthingStyles() {
     logger.info('[nuxt-uploadthing] Using UploadThing Tailwind CSS integration')
 
     const dist = resolveUploadthingVueDist()
-    logger.warn('VUE_DIST', dist)
 
     if (!dist) {
       logger.warn(
@@ -153,11 +147,11 @@ function toCssPath(path: string): string {
   return path.replace(/\\/g, '/')
 }
 
-type GenerateUploadthingArtifacts = {
-  resolver: Resolver
-  fileRouterExport: ModuleOptions['fileRouterExport']
-}
-function generateUploadthingArtifacts({ fileRouterExport, resolver }: GenerateUploadthingArtifacts) {
+function generateUploadthingArtifacts() {
+  const nuxt = useNuxt()
+  const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
+  const { fileRouterExport, componentPrefix } = uploadthingOptions
+
   const runtimeUploadButtonTemplate = addTemplate({
     write: true,
     filename: 'runtime-upload-button.ts',
@@ -179,7 +173,7 @@ export default RuntimeUploadButton
   })
 
   addComponent({
-    name: 'RuntimeUploadButton',
+    name: `${componentPrefix.trim()}UploadButton`,
     filePath: runtimeUploadButtonTemplate.dst,
     export: 'default',
   })
@@ -205,7 +199,7 @@ export default RuntimeUploadDropzone
   })
 
   addComponent({
-    name: 'RuntimeUploadDropzone',
+    name: `${componentPrefix.trim()}UploadDropzone`,
     filePath: runtimeUploadDropzoneTemplate.dst,
     export: 'default',
   })
