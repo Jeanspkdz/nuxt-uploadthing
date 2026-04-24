@@ -26,7 +26,28 @@ export interface ModuleOptions {
    * export const fileRouter = createUploadthing()({ ... })
    */
   fileRouterExport: string
+  /**
+   * Whether to enable Tailwind CSS integration for UploadThing components.
+   *
+   * When enabled, the module injects UploadThing Tailwind styles and
+   * configures Tailwind to scan UploadThing's internal components.
+   *
+   * @default false
+   */
   useTailwindStyles: boolean
+
+  /**
+   * Prefix applied to auto-registered UploadThing components.
+   *
+   *
+   * @example
+   * componentPrefix: 'UT'
+   * // Results in components like:
+   * // <UTUploadButton />
+   * // <UTUploadDropzone />
+   *
+   * @default 'Uploadthing'
+   */
   componentPrefix: string
 }
 
