@@ -2,7 +2,7 @@ import { addComponent, addImports, addServerHandler, addTemplate, createResolver
 import { defu } from 'defu'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'pathe'
 
 const MODULE_NAME = 'nuxt-uploadthing'
 const logger = useLogger(MODULE_NAME)
@@ -119,6 +119,7 @@ function applyUploadthingStyles() {
     logger.info('[nuxt-uploadthing] Using UploadThing Tailwind CSS integration')
 
     const dist = resolveUploadthingVueDist()
+    logger.warn('DIST', dist)
 
     if (!dist) {
       logger.warn(
@@ -127,7 +128,8 @@ function applyUploadthingStyles() {
       return registerUploadthingCss()
     }
 
-    return registerUploadthingTailwindCss(dist)
+    registerUploadthingTailwindCss(dist)
+    return
   }
 
   logger.info('[nuxt-uploadthing] Using UploadThing default CSS')
@@ -135,20 +137,34 @@ function applyUploadthingStyles() {
 }
 
 function registerUploadthingCss() {
+  addTemplate({
+    write: true,
+    filename: 'uploadthing-tw.css',
+    dst: resolver.resolve('./runtime/uploadthing-tw.css'),
+    getContents: () =>
+      `
+/**
+ * Tailwind styles are disabled.
+ * UploadThing default CSS is being used instead.
+ * This file is intentionally left empty.
+ */
+    `,
+  })
+
   const nuxt = useNuxt()
   return nuxt.options.css.push('@uploadthing/vue/styles.css')
 }
 
 function registerUploadthingTailwindCss(distPath: string) {
-  const cssTemplate = addTemplate({
+  logger.warn('INJECTING tw')
+
+  addTemplate({
     write: true,
     filename: 'uploadthing-tw.css',
+    dst: resolver.resolve('./runtime/uploadthing-tw.css'),
     getContents: () =>
-      `@import "uploadthing/tw/v4";\n@source "${toCssPath(distPath)}";\n`,
+      `@import "uploadthing/tw/v4";\n@source "${distPath}";\n`,
   })
-
-  const nuxt = useNuxt()
-  nuxt.options.css.push(cssTemplate.dst)
 }
 
 function resolveUploadthingVueDist(): string | null {
@@ -156,16 +172,18 @@ function resolveUploadthingVueDist(): string | null {
     const nuxt = useNuxt()
     const _require = createRequire(import.meta.url)
     const packageJsonPath = _require.resolve('@uploadthing/vue/package.json', { paths: [nuxt.options.rootDir] })
+
     const distPath = join(dirname(packageJsonPath), 'dist')
-    return existsSync(distPath) ? distPath : null
+    if (!existsSync(distPath)) {
+      return null
+    }
+    // const relativeDist = relative(nuxt.options.rootDir, distPath)
+    // return relativeDist
+    return distPath
   }
   catch {
     return null
   }
-}
-
-function toCssPath(path: string): string {
-  return path.replace(/\\/g, '/')
 }
 
 function generateUploadthingArtifacts() {
