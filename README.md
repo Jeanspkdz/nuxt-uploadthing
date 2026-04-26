@@ -95,9 +95,17 @@ uploadthing: {
 }
 ```
 
-Requirement: `tailwindcss` must be installed in your project.
+Requirements:
 
-That is the only requirement for Tailwind mode in this module. If `tailwindcss` is missing, the module falls back to UploadThing default CSS.
+1. `tailwindcss` must be installed in your project.
+2. Import both Tailwind and `nuxt-uploadthing` styles in your main CSS file (for example `assets/css/main.css`):
+
+```css
+@import "tailwindcss";
+@import "nuxt-uploadthing";
+```
+
+If `tailwindcss` is missing, the module falls back to UploadThing default CSS.
 
 ---
 
