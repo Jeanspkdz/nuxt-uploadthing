@@ -1,4 +1,4 @@
-import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule, useLogger, useNuxt } from '@nuxt/kit'
+import { addComponentsDir, addImportsDir, addServerHandler, addTemplate, createResolver, defineNuxtModule, useLogger, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -162,8 +162,6 @@ function registerUploadthingCss() {
 }
 
 function registerUploadthingTailwindCss(distPath: string) {
-  logger.warn('INJECTING tw')
-
   addTemplate({
     write: true,
     filename: 'uploadthing-tw.css',
@@ -197,10 +195,10 @@ function generateUploadthingArtifacts() {
   const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
   const { fileRouterExport, componentPrefix } = uploadthingOptions
 
-  const runtimeUploadButtonTemplate = addTemplate({
+  addTemplate({
     write: true,
-    filename: 'runtime-upload-button.ts',
-    dst: resolver.resolve('./runtime/components/runtime-upload-button.ts'),
+    filename: 'upload-button.ts',
+    dst: resolver.resolve('./runtime/components/upload-button.ts'),
     getContents: () => `
 import { generateUploadButton } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -217,16 +215,10 @@ export default RuntimeUploadButton
 `,
   })
 
-  addComponent({
-    name: `${componentPrefix.trim()}UploadButton`,
-    filePath: runtimeUploadButtonTemplate.dst,
-    export: 'default',
-  })
-
-  const runtimeUploadDropzoneTemplate = addTemplate({
+  addTemplate({
     write: true,
-    filename: 'runtime-upload-dropzone.ts',
-    dst: resolver.resolve('./runtime/components/runtime-upload-dropzone.ts'),
+    filename: 'upload-dropzone.ts',
+    dst: resolver.resolve('./runtime/components/upload-dropzone.ts'),
     getContents: () => `
 import { generateUploadDropzone } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -243,13 +235,13 @@ export default RuntimeUploadDropzone
 `,
   })
 
-  addComponent({
-    name: `${componentPrefix.trim()}UploadDropzone`,
-    filePath: runtimeUploadDropzoneTemplate.dst,
-    export: 'default',
+  addComponentsDir({
+    path: resolver.resolve('./runtime/components'),
+    prefix: componentPrefix,
+    pathPrefix: false,
   })
 
-  const uploadHelpersTemplate = addTemplate({
+  addTemplate({
     write: true,
     filename: 'upload-helpers.ts',
     dst: resolver.resolve('./runtime/utils/upload-helpers.ts'),
@@ -274,24 +266,7 @@ export const uploadFiles = helpers.uploadFiles
 `,
   })
 
-  addImports([
-    {
-      name: 'useUploadThing',
-      from: uploadHelpersTemplate.dst,
-    },
-    {
-      name: 'createUpload',
-      from: uploadHelpersTemplate.dst,
-    },
-    {
-      name: 'routeRegistry',
-      from: uploadHelpersTemplate.dst,
-    },
-    {
-      name: 'uploadFiles',
-      from: uploadHelpersTemplate.dst,
-    },
-  ])
+  addImportsDir(resolver.resolve('./runtime/utils'))
 
   const uploadthingHandlerTemplate = addTemplate({
     write: true,
@@ -324,8 +299,6 @@ export default defineEventHandler((event) => {
   if (!router) {
     throw new Error('[nuxt-uploadthing] Router export not found: ' + ROUTER_EXPORT)
   }
-
-    console.log('CONGIF', config)
 
   return createRouteHandler({
     router,
