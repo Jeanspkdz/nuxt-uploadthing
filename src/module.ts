@@ -3,6 +3,7 @@ import { defu } from 'defu'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'pathe'
+import type { RouteHandlerConfig } from 'uploadthing/types'
 
 const MODULE_NAME = 'nuxt-uploadthing'
 const logger = useLogger(MODULE_NAME)
@@ -49,6 +50,11 @@ export interface ModuleOptions {
    * @default 'Uploadthing'
    */
   componentPrefix: string
+  /**
+   * Configuration passed directly to the UploadThing route handler.
+   * @see https://docs.uploadthing.com/api-reference/server#config-parameters
+   */
+  routeHandlerConfig: RouteHandlerConfig
 }
 
 export default defineNuxtModule<ModuleOptions>().with({
@@ -76,12 +82,12 @@ export default defineNuxtModule<ModuleOptions>().with({
         `To use uploadthing, please create a router file at \`${options.fileRouterPath}\`.`,
       )
 
-      _nuxt.options.alias['#jeans'] = resolver.resolve(
+      _nuxt.options.alias['#ut-router'] = resolver.resolve(
         './runtime/server/router',
       )
     }
     else {
-      _nuxt.options.alias['#jeans'] = fileRouterPathResolved
+      _nuxt.options.alias['#ut-router'] = fileRouterPathResolved
     }
 
     applyUploadthingStyles()
@@ -198,7 +204,7 @@ function generateUploadthingArtifacts() {
     getContents: () => `
 import { generateUploadButton } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
-type RouterModule = typeof import('#jeans')
+type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
 type UserFileRouter =
   RouterExport extends keyof RouterModule
@@ -224,7 +230,7 @@ export default RuntimeUploadButton
     getContents: () => `
 import { generateUploadDropzone } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
-type RouterModule = typeof import('#jeans')
+type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
 type UserFileRouter =
   RouterExport extends keyof RouterModule
@@ -250,7 +256,7 @@ export default RuntimeUploadDropzone
     getContents: () => `
 import { generateVueHelpers } from '@uploadthing/vue'
 import type { FileRouter } from 'uploadthing/h3'
-type RouterModule = typeof import('#jeans')
+type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
 type UserFileRouter =
   RouterExport extends keyof RouterModule
@@ -296,7 +302,7 @@ export const uploadFiles = helpers.uploadFiles
 import { useRuntimeConfig } from '#imports'
 import { defineEventHandler } from 'h3'
 import { createRouteHandler } from 'uploadthing/h3'
-import * as RouterModule from '#jeans'
+import * as RouterModule from '#ut-router'
 
 const ROUTER_EXPORT = ${JSON.stringify(fileRouterExport)}
 
@@ -310,16 +316,20 @@ const emptyStringToUndefined = (obj) => {
 
 export default defineEventHandler((event) => {
   const runtime = useRuntimeConfig()
-  const config = emptyStringToUndefined(runtime.uploadthing ?? {})
+  const config = emptyStringToUndefined(runtime.uploadthing?.routeHandlerConfig ?? {})
+  const hasConfig = Object.keys(config).length > 0
+
 
   const router = RouterModule[ROUTER_EXPORT]
   if (!router) {
     throw new Error('[nuxt-uploadthing] Router export not found: ' + ROUTER_EXPORT)
   }
 
+    console.log('CONGIF', config)
+
   return createRouteHandler({
     router,
-    config,
+      ...(hasConfig ? { config } : {}),
   })(event)
 })
 `,
