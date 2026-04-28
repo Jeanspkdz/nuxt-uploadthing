@@ -1,6 +1,6 @@
 {
   "name": "nuxt-uploadthing",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Nuxt module for seamless UploadThing integration with type-safe file routers and auto-generated components.",
   "repository": {
     "type": "git",
