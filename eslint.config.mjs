@@ -16,5 +16,12 @@ export default createConfigForNuxt({
   },
 })
   .append(
-    // your custom flat config here...
+    {
+      ignores: [
+        'src/runtime/components/upload-button.ts',
+        'src/runtime/components/upload-dropzone.ts',
+        'src/runtime/server/api/uploadthing.ts',
+        'src/runtime/utils/upload-helpers.ts',
+      ],
+    },
   )
