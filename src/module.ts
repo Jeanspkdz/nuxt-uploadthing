@@ -1,6 +1,6 @@
 import { addComponentsDir, addImportsDir, addServerHandler, addTemplate, createResolver, defineNuxtModule, useLogger, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'pathe'
 import type { RouteHandlerConfig } from 'uploadthing/types'
@@ -106,40 +106,67 @@ export default defineNuxtModule<ModuleOptions>().with({
   },
 })
 
+function getTailwindVersion(): '3' | '4' | null {
+  try {
+    const nuxt = useNuxt()
+    // const _require = createRequire(import.meta.url)
+    const _require = createRequire(nuxt.options.rootDir + '/')
+    const tailwindPackagePath = _require.resolve('tailwindcss/package.json')
+    const tailwindPackage = JSON.parse(readFileSync(tailwindPackagePath, 'utf-8')) as { version?: string }
+
+    if (tailwindPackage.version?.startsWith('4')) {
+      return '4'
+    }
+
+    if (tailwindPackage.version?.startsWith('3')) {
+      return '3'
+    }
+
+    return null
+  }
+  catch {
+    return null
+  }
+}
+
 function applyUploadthingStyles() {
   const nuxt = useNuxt()
   const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
   const useTailwindStyles = uploadthingOptions.useTailwindStyles
-  const rootDir = nuxt.options.rootDir
-  const resolveTwPath = join(rootDir, 'node_modules/tailwindcss')
-  const isTailwindInstalled = existsSync(resolveTwPath)
 
-  if (useTailwindStyles && !isTailwindInstalled) {
+  if (!useTailwindStyles) {
+    logger.info('[nuxt-uploadthing] Using UploadThing default CSS')
+    return registerUploadthingCss()
+  }
+
+  const tailwindVersion = getTailwindVersion()
+
+  if (!tailwindVersion) {
     logger.warn(
-      '[nuxt-uploadthing] `useTailwindStyles` is enabled, but `tailwind` is not installed. Falling back to default UploadThing CSS.',
+      '[nuxt-uploadthing] `useTailwindStyles` is enabled, but `tailwindcss` is missing or an unsupported version is installed. Falling back to default UploadThing CSS.',
     )
     return registerUploadthingCss()
   }
 
-  if (useTailwindStyles && isTailwindInstalled) {
-    logger.info('[nuxt-uploadthing] Using UploadThing Tailwind CSS integration')
-
-    const dist = resolveUploadthingVueDist()
-    logger.warn('DIST', dist)
-
-    if (!dist) {
-      logger.warn(
-        '[nuxt-uploadthing] Could not resolve `@uploadthing/vue/dist` for Tailwind source scanning. Falling back to default UploadThing CSS.',
-      )
-      return registerUploadthingCss()
-    }
-
-    registerUploadthingTailwindCss(dist)
+  if (tailwindVersion === '3') {
+    logger.warn(
+      '[nuxt-uploadthing] Tailwind CSS v3 detected. To enable UploadThing Tailwind integration, wrap your Tailwind config with `withUt` from "uploadthing/tw". See: https://docs.uploadthing.com/concepts/theming#configuring-tailwind-css.',
+    )
     return
   }
 
-  logger.info('[nuxt-uploadthing] Using UploadThing default CSS')
-  return registerUploadthingCss()
+  logger.info('[nuxt-uploadthing] Using UploadThing Tailwind CSS integration')
+
+  const dist = resolveUploadthingVueDist()
+
+  if (!dist) {
+    logger.warn(
+      '[nuxt-uploadthing] Could not resolve `@uploadthing/vue/dist` for Tailwind source scanning. Falling back to default UploadThing CSS.',
+    )
+    return registerUploadthingCss()
+  }
+
+  registerUploadthingTailwindCss(dist)
 }
 
 function registerUploadthingCss() {
@@ -174,8 +201,9 @@ function registerUploadthingTailwindCss(distPath: string) {
 function resolveUploadthingVueDist(): string | null {
   try {
     const nuxt = useNuxt()
-    const _require = createRequire(import.meta.url)
-    const packageJsonPath = _require.resolve('@uploadthing/vue/package.json', { paths: [nuxt.options.rootDir] })
+    const _require = createRequire(nuxt.options.rootDir + '/')
+
+    const packageJsonPath = _require.resolve('@uploadthing/vue/package.json')
 
     const distPath = join(dirname(packageJsonPath), 'dist')
     if (!existsSync(distPath)) {
