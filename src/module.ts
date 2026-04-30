@@ -134,7 +134,7 @@ function applyUploadthingStyles() {
   const useTailwindStyles = uploadthingOptions.useTailwindStyles
 
   if (!useTailwindStyles) {
-    logger.info('[nuxt-uploadthing] Using UploadThing default CSS')
+    logger.info(' Using UploadThing default CSS')
     return registerUploadthingCss()
   }
 
@@ -142,27 +142,27 @@ function applyUploadthingStyles() {
 
   if (!tailwindVersion) {
     logger.warn(
-      '[nuxt-uploadthing] `useTailwindStyles` is enabled, but `tailwindcss` is missing or an unsupported version is installed. Falling back to default UploadThing CSS.',
+      ' `useTailwindStyles` is enabled, but `tailwindcss` is missing or an unsupported version is installed. Falling back to default UploadThing CSS.',
     )
     return registerUploadthingCss()
   }
 
   if (tailwindVersion === '3') {
     logger.warn(
-      '[nuxt-uploadthing] Tailwind CSS v3 detected. To enable UploadThing Tailwind integration, wrap your Tailwind config with `withUt` from "uploadthing/tw". See: https://docs.uploadthing.com/concepts/theming#configuring-tailwind-css.',
+      ' Tailwind CSS v3 detected. To enable UploadThing Tailwind integration, wrap your Tailwind config with `withUt` from "uploadthing/tw". See: https://docs.uploadthing.com/concepts/theming#configuring-tailwind-css.',
     )
     return
   }
 
-  logger.info('[nuxt-uploadthing] Using UploadThing Tailwind CSS integration')
+  logger.info(' Using UploadThing Tailwind CSS integration')
 
   const require = createRequire(import.meta.url)
-  const distPath = require.resolve('@uploadthing/vue')
-  const dist = dirname(distPath)
+  const uploadthingVuePath = require.resolve('@uploadthing/vue')
+  const dist = dirname(uploadthingVuePath)
 
   if (!dist) {
     logger.warn(
-      '[nuxt-uploadthing] Could not resolve `@uploadthing/vue/dist` for Tailwind source scanning. Falling back to default UploadThing CSS.',
+      ' Could not resolve `@uploadthing/vue/dist` for Tailwind source scanning. Falling back to default UploadThing CSS.',
     )
     return registerUploadthingCss()
   }
@@ -204,8 +204,8 @@ function generateUploadthingArtifacts() {
   const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
   const { fileRouterExport, componentPrefix } = uploadthingOptions
 
-  const requireFromModule = createRequire(import.meta.url)
-  const uploadthingVuePath = requireFromModule.resolve('@uploadthing/vue')
+  const require = createRequire(import.meta.url)
+  const uploadthingVuePath = require.resolve('@uploadthing/vue')
   const resolvedVuePath = dirname(uploadthingVuePath)
 
   nuxt.options.alias['#uploadthing-vue'] = resolvedVuePath
