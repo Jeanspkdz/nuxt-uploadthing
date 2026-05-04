@@ -1,8 +1,8 @@
-import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule, useLogger, useNuxt } from '@nuxt/kit'
+import { addComponent, addImports, addServerHandler, addTemplate, createResolver, defineNuxtModule, resolvePath, useLogger, useNuxt } from '@nuxt/kit'
 import { defu } from 'defu'
 import { existsSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, resolve } from 'pathe'
+import { dirname, relative, resolve } from 'pathe'
 import type { RouteHandlerConfig } from 'uploadthing/types'
 
 const MODULE_NAME = 'nuxt-uploadthing'
@@ -90,7 +90,7 @@ export default defineNuxtModule<ModuleOptions>().with({
       _nuxt.options.alias['#ut-router'] = fileRouterPathResolved
     }
 
-    applyUploadthingStyles()
+    await applyUploadthingStyles()
 
     generateUploadthingArtifacts()
 
@@ -128,7 +128,33 @@ function getTailwindVersion(): '3' | '4' | null {
   }
 }
 
-function applyUploadthingStyles() {
+async function findTailwindCssFilePath(): Promise<string | null> {
+  const nuxt = useNuxt()
+  const cssEntries = nuxt.options.css ?? []
+  const tailwindImportPattern = /@import\s+['"]tailwind(?:css)?['"]/
+
+  for (const cssEntry of cssEntries) {
+    const cssFilePath = await resolvePath(cssEntry)
+
+    if (!cssFilePath) {
+      continue
+    }
+
+    try {
+      const cssContent = readFileSync(cssFilePath, 'utf-8')
+      if (tailwindImportPattern.test(cssContent)) {
+        return cssFilePath
+      }
+    }
+    catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+async function applyUploadthingStyles() {
   const nuxt = useNuxt()
   const uploadthingOptions = nuxt.options.runtimeConfig.uploadthing
   const useTailwindStyles = uploadthingOptions.useTailwindStyles
@@ -156,6 +182,14 @@ function applyUploadthingStyles() {
 
   logger.info(' Using UploadThing Tailwind CSS integration')
 
+  const tailwindCssFilePath = await findTailwindCssFilePath()
+  if (!tailwindCssFilePath) {
+    logger.warn(
+      ' `useTailwindStyles` is enabled, but no local CSS file with `@import "tailwindcss"` was found in `nuxt.options.css`. Falling back to default UploadThing CSS.',
+    )
+    return registerUploadthingCss()
+  }
+
   const require = createRequire(import.meta.url)
   const uploadthingVuePath = require.resolve('@uploadthing/vue')
   const dist = dirname(uploadthingVuePath)
@@ -167,7 +201,9 @@ function applyUploadthingStyles() {
     return registerUploadthingCss()
   }
 
-  registerUploadthingTailwindCss(dist)
+  const sourcePath = relative(resolver.resolve('./runtime'), dist)
+
+  registerUploadthingTailwindCss(sourcePath)
 }
 
 function registerUploadthingCss() {
