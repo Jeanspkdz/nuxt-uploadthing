@@ -18,7 +18,7 @@ function prepareFixture(name: string) {
 
 describe('generated styles', () => {
   it('keeps the package stylesheet static', () => {
-    expect(readFileSync(packagedCssPath, 'utf-8')).toContain('@import "#build/uploadthing-tw.css"')
+    expect(readFileSync(packagedCssPath, 'utf-8')).toContain("@import '#build/uploadthing-tw.css'")
   })
 
   it('generates the default-style placeholder in the Nuxt build directory', () => {
