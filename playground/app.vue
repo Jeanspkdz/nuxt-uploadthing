@@ -7,11 +7,11 @@
     <UploadThingUploadButton
       :config="{
         endpoint: 'pdfUploader',
-        onClientUploadComplete: (res) => {
+        onClientUploadComplete: (res: unknown) => {
           console.log('Upload complete:', res)
         },
 
-        onUploadError: (error) => {
+        onUploadError: (error: Error) => {
           console.error('Upload error:', error.message)
         },
       }"
