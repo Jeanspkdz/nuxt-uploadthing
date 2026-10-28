@@ -316,32 +316,27 @@ export const uploadFiles = helpers.uploadFiles
 
   const uploadthingHandlerTemplate = addTemplate({
     write: true,
-    filename: 'uploadthing.ts',
+    filename: 'uploadthing.mjs',
     getContents: () => `
 import { useRuntimeConfig } from '#imports'
 import { defineEventHandler } from 'h3'
 import { createRouteHandler } from 'uploadthing/h3'
-import type { FileRouter } from 'uploadthing/h3'
-import type { RouteHandlerConfig } from 'uploadthing/types'
 import * as RouterModule from '#ut-router'
 
 const ROUTER_EXPORT = ${JSON.stringify(fileRouterExport)}
 
-let uploadthingHandler: ReturnType<typeof createRouteHandler> | undefined
+let uploadthingHandler
 
 export default defineEventHandler((event) => {
  if (!uploadthingHandler) {
     const runtime = useRuntimeConfig()
-    const uploadthingRuntime = runtime.uploadthing as typeof runtime.uploadthing & {
-      routeHandlerConfig?: RouteHandlerConfig
-    }
-    const config: RouteHandlerConfig = { ...uploadthingRuntime.routeHandlerConfig }
+    const config = { ...runtime.uploadthing?.routeHandlerConfig }
     for (const [key, value] of Object.entries(config)) {
-      if (value === '') (config as Record<string, unknown>)[key] = undefined
+      if (value === '') config[key] = undefined
     }
     const hasConfig = Object.keys(config).length > 0
 
-    const router = (RouterModule as Record<string, FileRouter | undefined>)[ROUTER_EXPORT]
+    const router = RouterModule[ROUTER_EXPORT]
     if (!router) {
       throw new Error('[nuxt-uploadthing] Router export not found: ' + ROUTER_EXPORT)
     }
