@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import MyModule from '../../../src/module'
 
 export default defineNuxtConfig({
@@ -5,7 +6,7 @@ export default defineNuxtConfig({
     MyModule,
   ],
   uploadthing: {
-    fileRouterPath: '~/server/uploadthing',
+    fileRouterPath: join(import.meta.dirname, 'server', 'uploadthing.ts'),
     fileRouterExport: 'ourFileRouter',
   },
 })

@@ -12,4 +12,18 @@ describe('ssr', async () => {
     const html = await $fetch('/')
     expect(html).toContain('<div>basic</div>')
   })
+
+  it('exposes the user file router at the UploadThing endpoint', async () => {
+    const routes = await $fetch<Array<{ slug: string }>>('/api/uploadthing')
+    expect(routes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: 'imageUploader' }),
+    ]))
+  })
+
+  it('rejects an invalid upload request', async () => {
+    await expect($fetch('/api/uploadthing', {
+      method: 'POST',
+      body: { files: [] },
+    })).rejects.toThrow()
+  })
 })
