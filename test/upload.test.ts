@@ -29,6 +29,8 @@ describe('file selection', () => {
     await vi.waitFor(() => expect(widget.attributes('data-state')).toBe('ready'))
     const file = new File(['image'], 'cover.png', { type: 'image/png' })
     const input = widget.find('input[type="file"]')
+    expect(input.attributes('accept')).toContain('image')
+    expect(input.attributes('multiple')).toBeUndefined()
     Object.defineProperty(input.element, 'files', { value: [file] })
 
     await input.trigger('change')
@@ -79,6 +81,9 @@ describe('file selection', () => {
       setRequestHeader() {}
       abort() {}
       send() {
+        const progress = new Event('progress')
+        Object.defineProperty(progress, 'loaded', { value: 5 })
+        this.upload.dispatchEvent(progress)
         queueMicrotask(() => this.dispatchEvent(new Event('load')))
       }
     }
@@ -97,8 +102,9 @@ describe('file selection', () => {
       })
     })
     const onClientUploadComplete = vi.fn()
+    const onUploadProgress = vi.fn()
     const widget = mount(generateUploadButton(), {
-      props: { config: { endpoint: 'imageUploader', fetch: fetchMock, onClientUploadComplete } },
+      props: { config: { endpoint: 'imageUploader', fetch: fetchMock, onClientUploadComplete, onUploadProgress } },
     })
     await vi.waitFor(() => expect(widget.attributes('data-state')).toBe('ready'))
     const file = new File(['image'], 'cover.png', { type: 'image/png' })
@@ -111,6 +117,56 @@ describe('file selection', () => {
     expect(onClientUploadComplete.mock.calls[0]?.[0]).toEqual([
       expect.objectContaining({ name: 'cover.png', key: 'cover-key', ufsUrl: 'https://example.test/cover.png' }),
     ])
+    expect(onUploadProgress.mock.calls.flat()).toContain(100)
+    widget.unmount()
+  })
+
+  it('reports cancellation while a mocked transfer is in progress', async () => {
+    class PendingXMLHttpRequest extends EventTarget {
+      upload = new EventTarget()
+      status = 200
+      response = {}
+      aborted = false
+
+      open() {}
+      setRequestHeader() {}
+      abort() {
+        this.aborted = true
+      }
+
+      send() {}
+    }
+    vi.stubGlobal('XMLHttpRequest', PendingXMLHttpRequest)
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify([{
+          url: 'https://example.test/upload',
+          key: 'cover-key',
+          customId: null,
+        }]), { headers: { 'content-type': 'application/json' } })
+      }
+      if (init?.method === 'HEAD') return new Response(null, { status: 200 })
+      return new Response(JSON.stringify(routeConfig), {
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+    const onUploadBegin = vi.fn()
+    const onUploadAborted = vi.fn()
+    const widget = mount(generateUploadButton(), {
+      props: {
+        config: { endpoint: 'imageUploader', fetch: fetchMock, onUploadBegin, onUploadAborted },
+      },
+    })
+    await vi.waitFor(() => expect(widget.attributes('data-state')).toBe('ready'))
+    const input = widget.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', {
+      value: [new File(['image'], 'cover.png', { type: 'image/png' })],
+    })
+
+    await input.trigger('change')
+    await vi.waitFor(() => expect(onUploadBegin).toHaveBeenCalledOnce())
+    await widget.find('[data-ut-element="button"]').trigger('click')
+    await vi.waitFor(() => expect(onUploadAborted).toHaveBeenCalledOnce())
     widget.unmount()
   })
 })
