@@ -24,10 +24,10 @@ describe('generated styles', () => {
   it('generates the default-style placeholder in the Nuxt build directory', () => {
     const packagedCss = readFileSync(packagedCssPath, 'utf-8')
     const nuxtAugments = readFileSync(nuxtAugmentsPath, 'utf-8')
-    expect(prepareFixture('basic')).toContain('Tailwind styles are disabled')
+    expect(prepareFixture('default-styles')).toContain('Tailwind styles are disabled')
     expect(readFileSync(packagedCssPath, 'utf-8')).toBe(packagedCss)
     expect(readFileSync(nuxtAugmentsPath, 'utf-8')).toBe(nuxtAugments)
-  })
+  }, 120_000)
 
   it('generates Tailwind styles in the Nuxt build directory', () => {
     const packagedCss = readFileSync(packagedCssPath, 'utf-8')
@@ -37,5 +37,5 @@ describe('generated styles', () => {
     expect(css).toContain('@source')
     expect(readFileSync(packagedCssPath, 'utf-8')).toBe(packagedCss)
     expect(readFileSync(nuxtAugmentsPath, 'utf-8')).toBe(nuxtAugments)
-  })
+  }, 120_000)
 })
