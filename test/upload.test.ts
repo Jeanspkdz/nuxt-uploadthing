@@ -71,6 +71,35 @@ describe('file selection', () => {
     widget.unmount()
   })
 
+  it.each([
+    ['unsupported file type', new File(['text'], 'notes.txt', { type: 'text/plain' })],
+    ['file larger than the configured limit', new File([new Uint8Array(5 * 1024 * 1024)], 'large.png', { type: 'image/png' })],
+  ])('reports an upload rejection for %s', async (_case, file) => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify({ message: 'File rejected by route configuration' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify(routeConfig), {
+        headers: { 'content-type': 'application/json' },
+      })
+    })
+    const onUploadError = vi.fn()
+    const widget = mount(generateUploadButton(), {
+      props: { config: { endpoint: 'imageUploader', fetch: fetchMock, onUploadError } },
+    })
+    await vi.waitFor(() => expect(widget.attributes('data-state')).toBe('ready'))
+    const input = widget.find('input[type="file"]')
+    Object.defineProperty(input.element, 'files', { value: [file] })
+
+    await input.trigger('change')
+    await vi.waitFor(() => expect(onUploadError).toHaveBeenCalledOnce())
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true)
+    widget.unmount()
+  })
+
   it('reports a completed upload after a mocked file transfer', async () => {
     class MockXMLHttpRequest extends EventTarget {
       upload = new EventTarget()
