@@ -61,4 +61,17 @@ describe('generated styles', () => {
       await tailwindNuxt.close()
     }
   }, 120_000)
+
+  it('falls back to default CSS when no Tailwind entry stylesheet exists', async () => {
+    const fixture = fileURLToPath(new URL('./fixtures/tailwind-missing-css', import.meta.url))
+    const nuxt = await loadNuxt({ cwd: fixture, dev: true })
+    try {
+      expect(nuxt.options.css).toContain('@uploadthing/vue/styles.css')
+    }
+    finally {
+      await nuxt.close()
+    }
+
+    expect(prepareFixture('tailwind-missing-css')).toContain('Tailwind styles are disabled')
+  }, 120_000)
 })
