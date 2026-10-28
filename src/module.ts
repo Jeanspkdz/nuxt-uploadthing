@@ -201,7 +201,7 @@ async function applyUploadthingStyles() {
     return registerUploadthingCss()
   }
 
-  const sourcePath = relative(resolver.resolve('./runtime'), dist)
+  const sourcePath = relative(nuxt.options.buildDir, dist)
 
   registerUploadthingTailwindCss(sourcePath)
 }
@@ -210,7 +210,6 @@ function registerUploadthingCss() {
   addTemplate({
     write: true,
     filename: 'uploadthing-tw.css',
-    dst: resolver.resolve('./runtime/uploadthing-tw.css'),
     getContents: () =>
       `
 /**
@@ -229,7 +228,6 @@ function registerUploadthingTailwindCss(distPath: string) {
   addTemplate({
     write: true,
     filename: 'uploadthing-tw.css',
-    dst: resolver.resolve('./runtime/uploadthing-tw.css'),
     getContents: () =>
       `@import "uploadthing/tw/v4";\n@source "${distPath}";\n`,
   })
