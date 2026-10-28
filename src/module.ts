@@ -246,7 +246,7 @@ function generateUploadthingArtifacts() {
 
   const btnTemplate = addTemplate({
     write: true,
-    filename: 'upload-button.ts',
+    filename: 'uploadthing/components/upload-button.ts',
     getContents: () => `
 import { generateUploadButton } from '#uploadthing-vue'
 import type { FileRouter } from 'uploadthing/h3'
@@ -270,7 +270,7 @@ export default RuntimeUploadButton
 
   const dropzoneTemplate = addTemplate({
     write: true,
-    filename: 'upload-dropzone.ts',
+    filename: 'uploadthing/components/upload-dropzone.ts',
     getContents: () => `
 import { generateUploadDropzone } from '#uploadthing-vue'
 import type { FileRouter } from 'uploadthing/h3'
