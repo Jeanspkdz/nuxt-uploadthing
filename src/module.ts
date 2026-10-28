@@ -252,12 +252,9 @@ import { generateUploadButton } from '#uploadthing-vue'
 import type { FileRouter } from 'uploadthing/h3'
 type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
-type UserFileRouter =
-  RouterExport extends keyof RouterModule
-    ? RouterModule[RouterExport] extends FileRouter
-      ? RouterModule[RouterExport]
-      : FileRouter
-    : FileRouter
+type UserFileRouter = RouterModule extends Record<RouterExport, infer Router>
+  ? Router extends FileRouter ? Router : FileRouter
+  : FileRouter
 const RuntimeUploadButton = generateUploadButton<UserFileRouter>()
 export default RuntimeUploadButton
 `,
@@ -276,12 +273,9 @@ import { generateUploadDropzone } from '#uploadthing-vue'
 import type { FileRouter } from 'uploadthing/h3'
 type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
-type UserFileRouter =
-  RouterExport extends keyof RouterModule
-    ? RouterModule[RouterExport] extends FileRouter
-      ? RouterModule[RouterExport]
-      : FileRouter
-    : FileRouter
+type UserFileRouter = RouterModule extends Record<RouterExport, infer Router>
+  ? Router extends FileRouter ? Router : FileRouter
+  : FileRouter
 const RuntimeUploadDropzone = generateUploadDropzone<UserFileRouter>()
 export default RuntimeUploadDropzone
 `,
@@ -300,12 +294,9 @@ import { generateVueHelpers } from '#uploadthing-vue'
 import type { FileRouter } from 'uploadthing/h3'
 type RouterModule = typeof import('#ut-router')
 type RouterExport = ${JSON.stringify(fileRouterExport)}
-type UserFileRouter =
-  RouterExport extends keyof RouterModule
-    ? RouterModule[RouterExport] extends FileRouter
-      ? RouterModule[RouterExport]
-      : FileRouter
-    : FileRouter
+type UserFileRouter = RouterModule extends Record<RouterExport, infer Router>
+  ? Router extends FileRouter ? Router : FileRouter
+  : FileRouter
 
 const helpers = generateVueHelpers<UserFileRouter>()
 
@@ -330,27 +321,27 @@ export const uploadFiles = helpers.uploadFiles
 import { useRuntimeConfig } from '#imports'
 import { defineEventHandler } from 'h3'
 import { createRouteHandler } from 'uploadthing/h3'
+import type { FileRouter } from 'uploadthing/h3'
+import type { RouteHandlerConfig } from 'uploadthing/types'
 import * as RouterModule from '#ut-router'
 
 const ROUTER_EXPORT = ${JSON.stringify(fileRouterExport)}
 
-const emptyStringToUndefined = (obj) => {
-  const next = {}
-  for (const key in obj) {
-    next[key] = obj[key] === '' ? undefined : obj[key]
-  }
-  return next
-}
-
-let uploadthingHandler
+let uploadthingHandler: ReturnType<typeof createRouteHandler> | undefined
 
 export default defineEventHandler((event) => {
  if (!uploadthingHandler) {
     const runtime = useRuntimeConfig()
-    const config = emptyStringToUndefined(runtime.uploadthing?.routeHandlerConfig ?? {})
+    const uploadthingRuntime = runtime.uploadthing as typeof runtime.uploadthing & {
+      routeHandlerConfig?: RouteHandlerConfig
+    }
+    const config: RouteHandlerConfig = { ...uploadthingRuntime.routeHandlerConfig }
+    for (const [key, value] of Object.entries(config)) {
+      if (value === '') (config as Record<string, unknown>)[key] = undefined
+    }
     const hasConfig = Object.keys(config).length > 0
 
-    const router = RouterModule[ROUTER_EXPORT]
+    const router = (RouterModule as Record<string, FileRouter | undefined>)[ROUTER_EXPORT]
     if (!router) {
       throw new Error('[nuxt-uploadthing] Router export not found: ' + ROUTER_EXPORT)
     }
